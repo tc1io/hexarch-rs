@@ -20,7 +20,7 @@ async fn main() -> Result<(), AppError> {
 
 // ------------------------------------------------------------------------------------------
 // API
-async fn api_handler_get_user<T: UserLoader + 'static>(use_case: GetUser<T>) -> Result<(), AppError> {
+async fn api_handler_get_user<T>(use_case: GetUser<T>) -> Result<(), AppError> {
     let user_id = 42;  // Eg read input from somewhere
     let user = use_case.apply(user_id).await?;
     //let user = use_case(user_id).await?;
@@ -42,7 +42,7 @@ pub trait UserLoader {
     async fn load_user(self, id: i32) -> Result<User, AppError>;
 }
 
-pub struct GetUser<T> {
+pub struct GetUser<T: UserLoader + 'static> {
     user_loader: T,
 }
 impl<T> GetUser<T> {
@@ -51,7 +51,7 @@ impl<T> GetUser<T> {
     }
 }
 
-impl<T: UserLoader + 'static> GetUser<T> {
+impl<T> GetUser<T> {
     pub fn apply(self, id: i32) -> impl std::future::Future<Output=Result<User, AppError>> + 'static {
         //Box::new(self.user_loader.load_user(id))
         self.user_loader.load_user(id)
