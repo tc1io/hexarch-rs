@@ -29,8 +29,18 @@ async fn api_handler_get_user<T: UserLoader + Send + 'static>(loader: T) -> Resu
     //
     // let user = get_user.run(loader).await?;
 
-    let y = getuser2(user_id);
-    let user = y(loader).await?;
+    // This is the function that we can give a loader to actually run and get the user
+    let get_user_func = getuser(user_id);
+    // --------------------------------------------------------
+    // Note on the side:
+    // such functions we would actually like to be able to compose into bigger use cases
+    // like this for example:
+    // let usecase = getuser.and_then(get_address);
+    // let user_and_address_func = usecase(user_id)
+    // --------------------------------------------------------
+
+    // here we give the function a loader to get the user
+    let user = get_user_func(loader).await?;
 
     println!("User: {}",user.name);
 
@@ -42,7 +52,7 @@ async fn api_handler_get_user<T: UserLoader + Send + 'static>(loader: T) -> Resu
 //     user_loader.load_user(id).await
 // }
 
-fn getuser2<I:UserLoader + 'static>(id:i32) -> impl FnOnce(I) -> Pin<Box<dyn Future<Output=Result<User, AppError>>>> {
+fn getuser<I:UserLoader + 'static>(id:i32) -> impl FnOnce(I) -> Pin<Box<dyn Future<Output=Result<User, AppError>>>> {
  move |user_loader: I| {
      user_loader.load_user(id)
  }
