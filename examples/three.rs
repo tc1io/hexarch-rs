@@ -3,6 +3,11 @@
 #![feature(fn_traits)]
 use hexarch::AppError;
 use async_trait::async_trait;
+use hexarch::RF;
+//use std::process::Output;
+use std::future::Future;
+use std::pin::Pin;
+
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
@@ -14,14 +19,33 @@ async fn main() -> Result<(), AppError> {
     Ok(())
 }
 
+
 // ------------------------------------------------------------------------------------------
 // API
-async fn api_handler_get_user<T: UserLoader + 'static>(loader: T) -> Result<(), AppError> {
+async fn api_handler_get_user<T: UserLoader + Send + 'static>(loader: T) -> Result<(), AppError> {
     let user_id = 42;  // Eg read input from somewhere
-    let get_user = GetUser::new(user_id);
-    let user = get_user.run1(loader).await?;
+    // let get_user = GetUser::new(user_id);
+    // //let get_ = GetUser::new(user_id);
+    //
+    // let user = get_user.run(loader).await?;
+
+    let y = getuser2(user_id);
+    let user = y(loader).await?;
+
     println!("User: {}",user.name);
+
     Ok(())
+}
+
+// use case
+// async fn getuser<I:UserLoader>(user_loader: I,id:i32) -> Result<User, AppError> {
+//     user_loader.load_user(id).await
+// }
+
+fn getuser2<I:UserLoader + 'static>(id:i32) -> impl FnOnce(I) -> Pin<Box<dyn Future<Output=Result<User, AppError>>>> {
+ move |user_loader: I| {
+     user_loader.load_user(id)
+ }
 }
 
 
@@ -48,12 +72,30 @@ impl GetUser {
     pub fn new(user_id: i32) -> GetUser {
         GetUser { user_id }
     }
+}
 
-    pub async fn run1<T:UserLoader>(self, user_loader: T) -> Result<User, AppError> {
+
+#[async_trait]
+impl<I:UserLoader + Send + 'static> RF<I> for GetUser {
+    type Output = Result<User, AppError>;
+
+    async fn run(self, user_loader: I) -> Result<User, AppError> {
         let id = self.user_id;
         user_loader.load_user(id).await
     }
 }
+
+// pub struct And<> {
+//
+// }
+// impl<I:UserLoader> RF<I> for And {
+//     type Output = Result<User, AppError>;
+//     async fn run(self, user_loader: I) -> Result<User, AppError> {
+//         let id = self.user_id;
+//         user_loader.load_user(id).await
+//     }
+// }
+
 
 
 
