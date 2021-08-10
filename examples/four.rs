@@ -15,6 +15,7 @@ async fn main() -> Result<(), AppError> {
     let user_repo = UserRepo { _connection: "proto:mydb/foo".into()};
     // Create use-case layer and pass the repo as input
     let get_user_fun = get_user(user_repo);
+    // pass use-case layer to adapter
     api_handler_get_user(get_user_fun).await?;
 
     Ok(())
